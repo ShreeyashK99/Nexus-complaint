@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── DARK THEME (default) ─── */
+:root {
+  --bg-primary: #0b0f1a;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1a2235;
+  --bg-surface: #1e293b;
+  --bg-elevated: #243049;
+  --bg-hover: rgba(99,102,241,0.06);
+  --bg-input: rgba(30,41,59,0.7);
+  --border-primary: rgba(71,85,105,0.25);
+  --border-secondary: rgba(71,85,105,0.15);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-muted: #475569;
+  --shadow-color: rgba(0,0,0,0.3);
+}
+
+/* ─── LIGHT THEME ─── */
+.theme-light {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f8fafc;
+  --bg-hover: rgba(99,102,241,0.04);
+  --bg-input: rgba(241,245,249,0.9);
+  --border-primary: rgba(203,213,225,0.6);
+  --border-secondary: rgba(226,232,240,0.5);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-muted: #cbd5e1;
+  --shadow-color: rgba(0,0,0,0.06);
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-primary); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+/* ─── Animations ─── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes subtlePulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+@keyframes typing {
+  0% { opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { opacity: 0.2; }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in { animation: fadeIn 0.25s ease-out both; }
+.animate-slide-in { animation: slideInRight 0.25s ease-out both; }
+.animate-slide-up { animation: slideInUp 0.3s ease-out both; }
+.animate-toast { animation: toastIn 0.3s ease-out both; }
+.animate-pulse-subtle { animation: subtlePulse 2.5s ease-in-out infinite; }
+.typing-dot { animation: typing 1.4s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+.shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(99,102,241,0.06) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Semantic classes ─── */
+.surface-bg { background: var(--bg-primary); }
+.surface-card { background: var(--bg-surface); }
+.surface-elevated { background: var(--bg-elevated); }
+.surface-input { background: var(--bg-input); }
+.surface-border { border-color: var(--border-primary); }
+.text-heading { color: var(--text-primary); }
+.text-body { color: var(--text-secondary); }
+.text-subtle { color: var(--text-tertiary); }
+.text-faint { color: var(--text-muted); }
+
+/* Divide color for themed components */
+.divide-themed > * + * {
+  border-top-color: var(--border-secondary);
+}
