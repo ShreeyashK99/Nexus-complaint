@@ -8,17 +8,27 @@ import { formatDistanceToNow } from 'date-fns';
 import TicketCreateModal from './TicketCreateModal'
 
 export default function TicketList() {
-  const { tickets, setSelectedTicketId} = useStore();
+  const {
+  tickets,
+  setSelectedTicketId,
+  isLoadingTickets,
+  currentUser
+} = useStore();
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   const [filterSeverity, setFilterSeverity] = useState<Severity | 'All'>('All');
   const [filterStatus, setFilterStatus] = useState<TicketStatus | 'All'>('All');
   const [showFilters, setShowFilters] = useState(false);
   
-  const activeTickets = tickets.filter(
+ const activeTickets = tickets.filter(
   (t: any) =>
     t.status !== 'Closed' &&
-    t.status !== 'Resolved'
+    t.status !== 'Resolved' &&
+    (
+      currentUser?.role === 'Admin' ||
+      t.owner === currentUser?.email ||
+      t.raised_by === currentUser?.email
+    )
 )
 
   const filtered = useMemo(() => {
@@ -47,6 +57,19 @@ export default function TicketList() {
 
   const statuses: TicketStatus[] = ['Open', 'Alignment Call Done', 'In Progress', 'Awaiting Customer', 'Resolved', 'Closed'];
 
+  if (isLoadingTickets) {
+  return (
+    <div
+      className="h-full flex items-center justify-center text-sm"
+      style={{ color: 'var(--text-secondary)' }}
+    >
+      Loading tickets...
+    </div>
+  );
+  
+}
+
+
   return (
     <>
     <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
@@ -55,7 +78,9 @@ export default function TicketList() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Tickets</h1>
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{filtered.length} of {tickets.length}</p>
+            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+  Showing {filtered.length} tickets
+</p>
           </div>
           <button
             onClick={() => useStore.getState().openCreateModal()}
@@ -141,7 +166,10 @@ export default function TicketList() {
                       <div className="flex items-center justify-between">
                         <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{ticket.customer_name}</span>
                         <div className="w-5 h-5 rounded-md flex items-center justify-center text-[8px] font-bold text-brand-400" style={{ background: 'rgba(99,102,241,0.1)' }}>
-                          {ticket.owner.split(' ').map((n: string) => n[0]).join('')}
+                          {(ticket.owner || 'Unassigned')
+                            .split(' ')
+                            .map((n: string) => n[0])
+                            .join('')}
                         </div>
                       </div>
                     </div>
@@ -201,8 +229,8 @@ export default function TicketList() {
             })}
             {filtered.length === 0 && (
               <div className="text-center py-16">
-                <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>No tickets match your search</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Try different filters or search terms</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>No tickets yet</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Create your first operational ticket</p>
               </div>
             )}
           </div>

@@ -1,6 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect } from 'react';
 import { useStore } from './store';
-import LoginPage from './components/LoginPage';
+import {
+  LoginPage,
+  SignupPage,
+  ForgotPasswordPage
+} from './components/AuthPages';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import AICopilot from './components/AICopilot';
@@ -11,6 +15,7 @@ import Dashboard from './components/Dashboard';
 import Escalations from './components/Escalations';
 import SettingsPage from './components/SettingsPage';
 import Toasts from './components/Toasts';
+import TicketCreateModal from './components/TicketCreateModal';
 
 function MainLayout() {
   const { currentView, theme } = useStore();
@@ -40,25 +45,49 @@ function MainLayout() {
         <AICopilot />
       </div>
       <Toasts />
+      <TicketCreateModal />
     </div>
   );
 }
 
+
+function AuthRouter() {
+
+  const {
+    authView,
+    theme
+  } = useStore();
+
+  return (
+    <div className={theme === 'light' ? 'theme-light' : ''}>
+      {authView === 'login' && <LoginPage />}
+      {authView === 'signup' && <SignupPage />}
+      {authView === 'forgot-password' && <ForgotPasswordPage />}
+    </div>
+  );
+}
+
+
 export default function App() {
-  const isAuthenticated = useStore((s) => s.isAuthenticated);
-const theme = useStore((s) => s.theme);
-const loadTickets = useStore((s) => s.loadTickets);
+
+  const isAuthenticated = useStore(
+    (s) => s.isAuthenticated
+  );
+
+  const loadTickets = useStore(
+    (s) => s.loadTickets
+  );
 
   useEffect(() => {
-    loadTickets();
-  }, []);
+
+    if (isAuthenticated) {
+      loadTickets();
+    }
+
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
-    return (
-      <div className={theme === 'light' ? 'theme-light' : ''}>
-        <LoginPage />
-      </div>
-    );
+    return <AuthRouter />;
   }
 
   return <MainLayout />;

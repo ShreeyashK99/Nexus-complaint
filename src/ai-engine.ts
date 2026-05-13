@@ -92,6 +92,45 @@ function generateSummary(verbatim: string, type: string): string {
 export function generateAIResponse(userMessage: string, tickets: Ticket[], userRole: UserRole): string {
   const lower = userMessage.toLowerCase();
 
+  const matchedTicket = tickets.find(
+  (t) =>
+    lower.includes(t.id.toLowerCase()) ||
+    lower.includes(t.customer_name.toLowerCase()) ||
+    lower.includes(t.company.toLowerCase())
+);
+
+if (
+  matchedTicket &&
+  (
+    lower.includes('show') ||
+    lower.includes('status') ||
+    lower.includes('update') ||
+    lower.includes('what')
+  )
+) {
+
+  const overdue =
+    new Date(matchedTicket.sla_deadline) < new Date();
+
+  return (
+    `📋 **Ticket Overview**\n\n` +
+    `🆔 ${matchedTicket.id}\n` +
+    `👤 Customer: ${matchedTicket.customer_name}\n` +
+    `🏢 Company: ${matchedTicket.company}\n` +
+    `📍 Location: ${matchedTicket.city}\n` +
+    `⚠️ Severity: ${matchedTicket.severity}\n` +
+    `📌 Status: ${matchedTicket.status}\n` +
+    `👨‍💼 Assigned Lead: ${matchedTicket.owner}\n` +
+    `📝 Issue: ${matchedTicket.complaint_summary}\n\n` +
+    (
+      overdue
+        ? `⏰ This ticket is overdue and needs attention.\n\n`
+        : `✅ Response timeline is currently healthy.\n\n`
+    ) +
+    `Would you like me to summarize risks, timeline activity, or customer impact?`
+  );
+}
+
   // Complaint creation
   if (lower.includes('customer') && (lower.includes('says') || lower.includes('complaint') || lower.includes('report') || lower.includes('issue'))) {
     const data = extractTicketData(userMessage);

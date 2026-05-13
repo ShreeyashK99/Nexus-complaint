@@ -161,6 +161,17 @@ interface AppState {
   currentUser: User | null;
   login: (email: string, password: string) => boolean;
   logout: () => void;
+  authView: 'login' | 'signup' | 'forgot-password';
+setAuthView: (
+  view: 'login' | 'signup' | 'forgot-password'
+) => void;
+
+signup: (
+  name: string,
+  email: string,
+  password: string,
+  role: UserRole
+) => boolean;
  
   isCreateModalOpen: boolean;
 openCreateModal: () => void;
@@ -193,10 +204,11 @@ deleteDraft: (id: string) => void;
   // Tickets
    // Tickets
   tickets: Ticket[];
+  isLoadingTickets: boolean;
   loadTickets: () => Promise<void>;
   addTicket: (ticket: Ticket) => void;
   updateTicket: (id: string, updates: Partial<Ticket>) => void;
-  addComment: (ticketId: string, comment: Comment) => void;
+  addComment: (ticketId: string, comment: Comment) => Promise<void>;
   addActivity: (ticketId: string, activity: ActivityEntry) => void;
 
   // AI
@@ -237,19 +249,15 @@ export interface LiveFeedItem {
   type: 'ai' | 'system' | 'user';
 }
 
-const USERS: Record<string, User> = {
-  'admin@nexus.ai': { id: 'u1', name: 'Arjun Mehta', email: 'admin@nexus.ai', role: 'Admin', avatar: 'AM', department: 'Leadership' },
-  'lead@nexus.ai': { id: 'u2', name: 'Priya Sharma', email: 'lead@nexus.ai', role: 'AssignedLead', avatar: 'PS', department: 'Operations' },
-  'bh@nexus.ai': { id: 'u3', name: 'Rahul Gupta', email: 'bh@nexus.ai', role: 'BusinessHead', avatar: 'RG', department: 'Business' },
-  'sales@nexus.ai': { id: 'u4', name: 'Neha Patel', email: 'sales@nexus.ai', role: 'Sales', avatar: 'NP', department: 'Sales' },
-};
-
 const savedUser =
   localStorage.getItem('nexus-user');
 
 const parsedUser = savedUser
   ? JSON.parse(savedUser)
   : null;
+
+const savedTheme =
+  localStorage.getItem('nexus-theme') as ThemeMode | null;
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
@@ -263,6 +271,12 @@ export const useStore = create<AppState>((set, get) => ({
   // Auth
   isAuthenticated: !!parsedUser,
 currentUser: parsedUser,
+authView: 'login',
+
+setAuthView: (view) =>
+  set({
+    authView: view,
+  }),
   isCreateModalOpen: false,
 
 openCreateModal: () =>
@@ -303,56 +317,182 @@ aiSettings: {
 saveDraft: () => {},
 
 deleteDraft: () => {},
-  login: (email: string, _password: string) => {
-    const user = USERS[email];
-    if (user) {
-      localStorage.setItem(
-  'nexus-user',
-  JSON.stringify(user)
-);
+login: (email: string, password: string) => {
 
-set({
-  isAuthenticated: true,
-currentUser: user,
-});
-      return true;
-    }
+  const accounts =
+    JSON.parse(
+      localStorage.getItem('nexus-accounts') || '[]'
+    );
+
+  const user =
+    accounts.find(
+      (u: any) =>
+        u.email === email &&
+        u.password === password
+    );
+
+  if (!user) {
     return false;
-  },
+  }
+
+  localStorage.setItem(
+    'nexus-user',
+    JSON.stringify(user)
+  );
+
+  set({
+    isAuthenticated: true,
+    currentUser: user,
+    currentView: 'workspace',
+  });
+
+  return true;
+},
+
+signup: (name, email, password, role) => {
+
+  const existingUsers =
+    JSON.parse(
+      localStorage.getItem('nexus-accounts') || '[]'
+    );
+
+  const alreadyExists =
+    existingUsers.find(
+      (u: any) => u.email === email
+    );
+
+  if (alreadyExists) {
+    return false;
+  }
+
+  const newUser = {
+    id: generateId(),
+    name,
+    email,
+    password,
+    role,
+    avatar: name
+      .split(' ')
+      .map((n) => n[0])
+      .join(''),
+    department: role,
+  };
+
+  localStorage.setItem(
+    'nexus-accounts',
+    JSON.stringify([
+      ...existingUsers,
+      newUser,
+    ])
+  );
+
+  localStorage.setItem(
+    'nexus-user',
+    JSON.stringify(newUser)
+  );
+
+  set({
+    isAuthenticated: true,
+    currentUser: newUser,
+    currentView: 'workspace',
+  });
+
+  return true;
+},
+
   logout: () => {
 
   localStorage.removeItem('nexus-user');
 
   set({
-    isAuthenticated: false,
-    currentUser: null,
-    currentView: 'workspace'
-  });
+  isAuthenticated: false,
+  currentUser: null,
+  currentView: 'workspace',
+  authView: 'login',
+});
 },
 
   // Theme
-  theme: 'dark',
-  toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+  theme: savedTheme || 'dark',
+  toggleTheme: () =>
+  set((s) => {
+
+    const nextTheme =
+      s.theme === 'dark'
+        ? 'light'
+        : 'dark';
+
+    localStorage.setItem(
+      'nexus-theme',
+      nextTheme
+    );
+
+    return {
+      theme: nextTheme
+    };
+
+  }),
 
   // Navigation
-  currentView: 'workspace',
-  setCurrentView: (view) => set({ currentView: view, selectedTicketId: view !== 'ticket-detail' ? null : get().selectedTicketId }),
+  currentView:
+  (localStorage.getItem('currentView') as any) ||
+  'workspace',
+  setCurrentView: (view) => {
+  localStorage.setItem('currentView', view);
+
+  set({
+    currentView: view,
+  });
+},
   selectedTicketId: null,
   setSelectedTicketId: (id) => set({ selectedTicketId: id, currentView: id ? 'ticket-detail' : get().currentView }),
 
   // Tickets
    // Tickets
  tickets: [],
+ isLoadingTickets: false,
 
- loadTickets: async () => {
-   const { fetchTickets } = await import('./services/tickets')
+loadTickets: async () => {
 
-   const tickets = await fetchTickets()
+  set({
+    isLoadingTickets: true
+  })
 
-   set({
-     tickets: tickets as Ticket[],
-   })
- },
+  try {
+
+    const { fetchTickets } =
+      await import('./services/tickets')
+
+    const allTickets =
+  await fetchTickets()
+
+const currentUser =
+  get().currentUser
+
+const tickets =
+  currentUser?.role === 'Admin'
+    ? allTickets
+    : allTickets.filter(
+        (t: any) =>
+          t.owner === currentUser?.name ||
+          t.raised_by === currentUser?.name
+      )
+
+    set({
+      tickets: tickets as Ticket[],
+      isLoadingTickets: false
+    })
+
+  } catch (err) {
+
+    console.error(err)
+
+    set({
+      isLoadingTickets: false
+    })
+
+  }
+},
 
  addTicket: (ticket) =>
    set((s) => ({
@@ -400,18 +540,47 @@ updateTicket: async (id, updates) => {
   }
 },
 
- addComment: (ticketId, comment) =>
-   set((s) => ({
-     tickets: s.tickets.map((t) =>
-       t.id === ticketId
-         ? {
-             ...t,
-             comments: [...(t.comments || []), comment],
-             updated_at: new Date().toISOString(),
-           }
-         : t
-     ),
-   })),
+addComment: async (ticketId, comment) => {
+
+  const { supabase } = await import('./lib/supabase')
+
+  const currentUser = get().currentUser
+
+  const { data, error } = await supabase
+    .from('comments')
+    .insert([
+      {
+        ticket_id: ticketId,
+        author_id: currentUser?.id,
+        message: comment.content,
+        is_internal: comment.isInternal,
+      },
+    ])
+    .select()
+
+  console.log('COMMENT RESULT:', data)
+  console.log('COMMENT ERROR:', error)
+
+  if (error) {
+    console.error(error)
+    return
+  }
+
+  set((s) => ({
+    tickets: s.tickets.map((t) =>
+      t.id === ticketId
+        ? {
+            ...t,
+            comments: [
+              ...(t.comments || []),
+              comment,
+            ],
+            updated_at: new Date().toISOString(),
+          }
+        : t
+    ),
+  }))
+},
 
  addActivity: (ticketId, activity) =>
    set((s) => ({
