@@ -156,7 +156,7 @@ export default function TicketDetail() {
         {([
           { key: 'details', label: 'Details', icon: FileText },
           { key: 'timeline', label: 'Timeline', icon: History },
-          { key: 'comments', label: `Discussion (${ticket.comments.length})`, icon: MessageSquare },
+          { key: 'comments', label: `Discussion (${(ticket.comments || []).length})`, icon: MessageSquare },
         ] as const).map(({ key, label, icon: Icon }) => (
           <button key={key} onClick={() => setActiveTab(key)}
             className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition"
@@ -224,9 +224,9 @@ export default function TicketDetail() {
               </div>
             </div>
 
-            {ticket.attachments.length > 0 && (
+            {(ticket.attachments || []).length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {ticket.attachments.map(att => (
+                {(ticket.attachments || []).map(att => (
                   <div key={att} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px]"
                     style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-secondary)', color: 'var(--text-secondary)' }}>
                     <Paperclip className="w-3 h-3" />{att}
@@ -242,7 +242,7 @@ export default function TicketDetail() {
             <div className="relative">
               <div className="absolute left-[9px] top-2 bottom-2 w-px" style={{ background: 'var(--border-secondary)' }} />
               <div className="space-y-3">
-                {[...ticket.activity].reverse().map((entry, idx) => (
+                {[...(ticket.activity || [])].reverse().map((entry, idx) => (
                   <div key={entry.id} className="flex items-start gap-3 relative animate-fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
                     <div className="w-[19px] h-[19px] rounded-full flex items-center justify-center shrink-0 z-10 border"
                       style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-secondary)' }}>
@@ -265,10 +265,10 @@ export default function TicketDetail() {
 
         {activeTab === 'comments' && (
           <div className="px-6 py-5 space-y-3 animate-fade-in">
-            {ticket.comments.length === 0 && (
+            {(ticket.comments || []).length === 0 && (
               <p className="text-center py-8 text-sm" style={{ color: 'var(--text-tertiary)' }}>No discussion yet — start the conversation below</p>
             )}
-            {ticket.comments.map((comment, idx) => (
+            {(ticket.comments || []).map((comment, idx) => (
               <div key={comment.id} className={`rounded-xl border p-3.5 animate-fade-in ${comment.isInternal ? 'border-l-[3px] border-l-amber-400' : ''}`}
                 style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-secondary)', animationDelay: `${idx * 40}ms` }}>
                 <div className="flex items-center gap-2 mb-1.5">

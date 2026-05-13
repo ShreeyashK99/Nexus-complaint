@@ -244,6 +244,13 @@ const USERS: Record<string, User> = {
   'sales@nexus.ai': { id: 'u4', name: 'Neha Patel', email: 'sales@nexus.ai', role: 'Sales', avatar: 'NP', department: 'Sales' },
 };
 
+const savedUser =
+  localStorage.getItem('nexus-user');
+
+const parsedUser = savedUser
+  ? JSON.parse(savedUser)
+  : null;
+
 function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
 }
@@ -254,8 +261,8 @@ function generateId(): string {
 
 export const useStore = create<AppState>((set, get) => ({
   // Auth
-  isAuthenticated: false,
-  currentUser: null,
+  isAuthenticated: !!parsedUser,
+currentUser: parsedUser,
   isCreateModalOpen: false,
 
 openCreateModal: () =>
@@ -299,12 +306,29 @@ deleteDraft: () => {},
   login: (email: string, _password: string) => {
     const user = USERS[email];
     if (user) {
-      set({ isAuthenticated: true, currentUser: user });
+      localStorage.setItem(
+  'nexus-user',
+  JSON.stringify(user)
+);
+
+set({
+  isAuthenticated: true,
+currentUser: user,
+});
       return true;
     }
     return false;
   },
-  logout: () => set({ isAuthenticated: false, currentUser: null, currentView: 'workspace' }),
+  logout: () => {
+
+  localStorage.removeItem('nexus-user');
+
+  set({
+    isAuthenticated: false,
+    currentUser: null,
+    currentView: 'workspace'
+  });
+},
 
   // Theme
   theme: 'dark',
@@ -335,18 +359,46 @@ deleteDraft: () => {},
      tickets: [ticket, ...s.tickets],
    })),
 
- updateTicket: (id, updates) =>
-   set((s) => ({
-     tickets: s.tickets.map((t) =>
-       t.id === id
-         ? {
-             ...t,
-             ...updates,
-             updated_at: new Date().toISOString(),
-           }
-         : t
-     ),
-   })),
+updateTicket: async (id, updates) => {
+
+  try {
+
+    const { supabase } = await import('./lib/supabase')
+
+    const { data, error } = await supabase
+      .from('tickets')
+      .update(updates)
+      .eq('id', id)
+      .select()
+
+    
+
+    console.log('UPDATE RESULT:', data)
+    console.log('UPDATE ERROR:', error)
+
+    if (error) {
+      throw error
+    }
+
+    set((s) => ({
+      tickets: s.tickets.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              ...data[0],
+            }
+          : t
+      ),
+    }))
+    await get().loadTickets()
+    return data[0]
+
+  } catch (err) {
+
+    console.error('UPDATE FAILED:', err)
+
+  }
+},
 
  addComment: (ticketId, comment) =>
    set((s) => ({
@@ -354,7 +406,7 @@ deleteDraft: () => {},
        t.id === ticketId
          ? {
              ...t,
-             comments: [...t.comments, comment],
+             comments: [...(t.comments || []), comment],
              updated_at: new Date().toISOString(),
            }
          : t
@@ -367,7 +419,7 @@ deleteDraft: () => {},
        t.id === ticketId
          ? {
              ...t,
-             activity: [...t.activity, activity],
+             activity: [...(t.activity || []), activity],
              updated_at: new Date().toISOString(),
            }
          : t

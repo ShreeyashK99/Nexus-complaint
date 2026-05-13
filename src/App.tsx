@@ -45,7 +45,9 @@ function MainLayout() {
 }
 
 export default function App() {
-  const { isAuthenticated, theme, loadTickets } = useStore();
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
+const theme = useStore((s) => s.theme);
+const loadTickets = useStore((s) => s.loadTickets);
 
   useEffect(() => {
     loadTickets();

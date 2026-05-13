@@ -12,6 +12,7 @@ import { TextInput,
     INDIAN_STATES
 } from './FormFields';
 import { X, Sparkles, User, Package, FileText, Settings, Brain, CheckCircle, ChevronRight, ChevronLeft, Save, Loader2 } from 'lucide-react';
+import { createTicket } from '../services/create-ticket'
 
 type Step = 'customer' | 'product' | 'complaint' | 'operations' | 'ai' | 'resolution';
 
@@ -26,7 +27,7 @@ const STEPS: { key: Step; label: string; icon: typeof User }[] = [
 
 
 export default function TicketCreateModal() {
-  const { isCreateModalOpen, closeCreateModal, addTicket, currentUser, teamMembers, addToast, operationalRules, aiSettings, saveDraft, deleteDraft } = useStore();
+  const { isCreateModalOpen, closeCreateModal, currentUser, teamMembers, addToast, operationalRules, aiSettings, saveDraft, deleteDraft } = useStore();
   const [step, setStep] = useState<Step>('customer');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -175,70 +176,119 @@ export default function TicketCreateModal() {
     }
   };
 
-  const handleSubmit = () => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      const slaDeadline = new Date(Date.now() + form.sla_hours * 3600000).toISOString();
-      const ticket: Ticket = {
-        id: `TKT-${String(Math.floor(Math.random() * 900) + 100).padStart(3, '0')}`,
-        customer_name: form.customer_name,
-        customer_phone: form.customer_phone,
-        customer_email: form.customer_email,
-        company: form.company,
-        city: form.city,
-        state: form.state,
-        customer_type: form.customer_type,
-        key_account: form.key_account,
-        product: form.product,
-        product_category: form.product_category,
-        batch_number: form.batch_number,
-        order_reference: form.order_reference,
-        delivery_date: form.delivery_date,
-        quantity_affected: form.quantity_affected,
-        complaint_type: form.complaint_type,
-        severity: form.severity as Severity,
-        business_impact: form.business_impact,
-        complaint_verbatim: form.complaint_verbatim,
-        complaint_summary: aiSuggestions.summary || form.complaint_verbatim.slice(0, 150),
-        desired_outcome: form.desired_outcome,
-        attachments: form.attachments,
-        owner: form.owner,
-        department: form.department,
-        sla_deadline: slaDeadline,
-        escalation_level: form.escalation_level,
-        root_cause: form.root_cause,
-        preventive_action: form.preventive_action,
-        internal_notes: form.internal_notes,
-        raised_by: currentUser?.name || '',
-        status: form.status,
-        customer_satisfaction: form.customer_satisfaction,
-        resolution_notes: form.resolution_notes,
-        segment: form.customer_type,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        comments: [],
-        activity: [{
-          id: generateId(),
-          ticketId: '',
-          type: 'creation',
-          description: 'Ticket created via intake workflow',
-          author: currentUser?.name || 'System',
-          timestamp: new Date().toISOString(),
-        }],
-        ai_suggested_severity: aiSuggestions.severity || undefined,
-        ai_suggested_department: aiSuggestions.department || undefined,
-        ai_summary: aiSuggestions.summary || undefined,
-        ai_recommendations: aiSuggestions.recommendations,
-      };
+ const handleSubmit = async () => {
 
-      addTicket(ticket);
-      deleteDraft(draftId);
-      addToast({ type: 'success', title: `Ticket ${ticket.id} created`, description: `Assigned to ${ticket.owner}` });
-      setIsSubmitting(false);
-      closeCreateModal();
-      resetForm();
-    }, 800);
-  };
+  try {
+
+    setIsSubmitting(true)
+
+    const slaDeadline = new Date(
+      Date.now() + form.sla_hours * 3600000
+    ).toISOString()
+
+    const ticketPayload: Partial<Ticket> = {
+      customer_name: form.customer_name,
+      customer_phone: form.customer_phone,
+      customer_email: form.customer_email,
+
+      company: form.company,
+      city: form.city,
+      state: form.state,
+
+      customer_type: form.customer_type,
+      key_account: form.key_account,
+
+      product: form.product,
+      product_category: form.product_category,
+
+      batch_number: form.batch_number,
+      order_reference: form.order_reference,
+      delivery_date: form.delivery_date,
+      quantity_affected: form.quantity_affected,
+
+      complaint_type: form.complaint_type,
+      severity: form.severity as Severity,
+
+      business_impact: form.business_impact,
+
+      complaint_verbatim: form.complaint_verbatim,
+
+      complaint_summary:
+        aiSuggestions.summary ||
+        form.complaint_verbatim.slice(0, 150),
+
+      desired_outcome: form.desired_outcome,
+
+      attachments: form.attachments,
+
+      owner: form.owner,
+      department: form.department,
+
+      sla_deadline: slaDeadline,
+
+      escalation_level: form.escalation_level,
+
+      root_cause: form.root_cause,
+      preventive_action: form.preventive_action,
+
+      internal_notes: form.internal_notes,
+
+      raised_by: currentUser?.name || '',
+
+      status: form.status,
+
+      customer_satisfaction:
+        form.customer_satisfaction,
+
+      resolution_notes: form.resolution_notes,
+
+      segment: form.customer_type,
+
+      ai_suggested_severity:
+        aiSuggestions.severity || undefined,
+
+      ai_suggested_department:
+        aiSuggestions.department || undefined,
+
+      ai_summary:
+        aiSuggestions.summary || undefined,
+
+      ai_recommendations:
+        aiSuggestions.recommendations,
+    }
+
+    await createTicket(ticketPayload)
+
+    await useStore.getState().loadTickets()
+
+    deleteDraft(draftId)
+
+    addToast({
+      type: 'success',
+      title: 'Ticket created',
+      description: 'Saved to Supabase successfully',
+    })
+
+    closeCreateModal()
+
+    resetForm()
+
+  } catch (error) {
+
+    console.error(error)
+
+    addToast({
+      type: 'error',
+      title: 'Ticket creation failed',
+      description: 'Could not save ticket',
+    })
+
+  } finally {
+
+    setIsSubmitting(false)
+
+  }
+}
 
   const handleSaveDraft = () => {
     const draftData = { ...form, severity: form.severity || undefined } as Partial<Ticket>;

@@ -15,9 +15,14 @@ export default function TicketList() {
   const [filterStatus, setFilterStatus] = useState<TicketStatus | 'All'>('All');
   const [showFilters, setShowFilters] = useState(false);
   
+  const activeTickets = tickets.filter(
+  (t: any) =>
+    t.status !== 'Closed' &&
+    t.status !== 'Resolved'
+)
 
   const filtered = useMemo(() => {
-    return tickets.filter((t: any) => {
+    return activeTickets.filter((t: any) => {
       if (filterSeverity !== 'All' && t.severity !== filterSeverity) return false;
       if (filterStatus !== 'All' && t.status !== filterStatus) return false;
       if (search) {

@@ -11,8 +11,14 @@ export default function Escalations() {
   const activeTickets = tickets.filter(t => t.status !== 'Closed' && t.status !== 'Resolved');
   const alerted = activeTickets.filter(t => t.escalation_level !== 'None');
   const slaAtRisk = activeTickets.filter(t => {
-    const hoursLeft = (new Date(t.sla_deadline).getTime() - new Date().getTime()) / 3600000;
-    return hoursLeft < 12 && hoursLeft > 0;
+    const deadline = t.sla_deadline
+  ? new Date(t.sla_deadline).getTime()
+  : Date.now();
+
+const hoursLeft =
+  (deadline - new Date().getTime()) / 3600000;
+
+return hoursLeft < 12 && hoursLeft > 0;
   });
   const overdue = activeTickets.filter(t => new Date(t.sla_deadline) < new Date());
 
@@ -67,7 +73,15 @@ export default function Escalations() {
                 return order.indexOf(a.escalation_level) - order.indexOf(b.escalation_level);
               }).map((ticket, idx) => {
                 const isOverdue = new Date(ticket.sla_deadline) < new Date();
-                const hours = Math.abs(Math.round((new Date().getTime() - new Date(ticket.sla_deadline).getTime()) / 3600000));
+                const deadline = ticket.sla_deadline
+  ? new Date(ticket.sla_deadline).getTime()
+  : Date.now();
+
+const hours = Math.abs(
+  Math.round(
+    (deadline - new Date().getTime()) / 3600000
+  )
+);
                 return (
                   <div key={ticket.id} onClick={() => setSelectedTicketId(ticket.id)}
                     className="rounded-xl border p-4 cursor-pointer transition group hover:border-brand-500/20 animate-fade-in"
@@ -124,7 +138,15 @@ export default function Escalations() {
             <div className="space-y-1.5">
               {[...overdue, ...slaAtRisk].map(ticket => {
                 const isOverdue = new Date(ticket.sla_deadline) < new Date();
-                const hours = Math.abs(Math.round((new Date().getTime() - new Date(ticket.sla_deadline).getTime()) / 3600000));
+                const deadline = ticket.sla_deadline
+  ? new Date(ticket.sla_deadline).getTime()
+  : Date.now();
+
+const hours = Math.abs(
+  Math.round(
+    (deadline - new Date().getTime()) / 3600000
+  )
+);
                 return (
                   <div key={ticket.id} onClick={() => setSelectedTicketId(ticket.id)}
                     className="rounded-xl border p-3 cursor-pointer transition hover:scale-[1.002]"
