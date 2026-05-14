@@ -1,32 +1,68 @@
 import { useState } from 'react';
 import { useStore, type UserRole, ROLE_LABELS } from '../store';
-import { Zap, ArrowRight, AlertCircle, ArrowLeft, Mail, Lock, User, Sparkles } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Zap, ArrowRight, AlertCircle, ArrowLeft, Mail, Lock, User, Sparkles ,Eye,
+EyeOff,} from 'lucide-react';
 
 export function LoginPage() {
-  const { login, setAuthView } = useStore();
+  const { setAuthView } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    setTimeout(() => {
-      const success = login(email, password || 'demo');
-      if (!success) setError('Invalid credentials. Try a demo account below.');
-      setIsLoading(false);
-    }, 800);
-  };
+  const handleSubmit = async (
+  e: React.FormEvent
+) => {
 
-  const quickLogin = (emailAddr: string) => {
-    setIsLoading(true);
-    setTimeout(() => {
-      login(emailAddr, 'demo');
+  e.preventDefault();
+
+  setIsLoading(true);
+  setError('');
+
+  try {
+
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+    if (error) {
+      setError(error.message);
       setIsLoading(false);
-    }, 600);
-  };
+      return;
+    }
+
+    const user =
+      data.user;
+
+    localStorage.setItem(
+      'nexus-user',
+      JSON.stringify({
+        id: user.id,
+        email: user.email,
+        name:
+          user.user_metadata?.full_name ||
+          'User',
+        role:
+          user.user_metadata?.role ||
+          'Sales',
+      })
+    );
+
+    window.location.reload();
+
+  } catch (err) {
+
+    setError('Login failed');
+
+  }
+
+  setIsLoading(false);
+};
+
+  
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-primary)' }}>
@@ -89,8 +125,14 @@ export function LoginPage() {
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none transition-all border focus:ring-2 focus:ring-brand-500/30"
                   style={{ background: 'var(--bg-input)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }} />
+                  
               </div>
+              
             </div>
+            
+
+            
+
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -119,28 +161,7 @@ export function LoginPage() {
             <button onClick={() => setAuthView('signup')} className="text-xs text-brand-400 hover:underline">Sign up</button>
           </div>
 
-          <div className="mt-10">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-              <p className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>Demo accounts</p>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { email: 'founder@nexus.ai', role: 'Founder', color: 'border-purple-500/25 text-purple-300' },
-                { email: 'owner@nexus.ai', role: 'Owner', color: 'border-pink-500/25 text-pink-300' },
-                { email: 'admin@nexus.ai', role: 'Admin', color: 'border-blue-500/25 text-blue-300' },
-                { email: 'bh@nexus.ai', role: 'Business Head', color: 'border-emerald-500/25 text-emerald-300' },
-                { email: 'lead@nexus.ai', role: 'Assigned Lead', color: 'border-cyan-500/25 text-cyan-300' },
-                { email: 'sales@nexus.ai', role: 'Sales', color: 'border-amber-500/25 text-amber-300' },
-              ].map((acc) => (
-                <button key={acc.email} onClick={() => quickLogin(acc.email)}
-                  className={`px-2 py-2 rounded-lg border text-left hover:scale-[1.02] transition-all ${acc.color}`}
-                  style={{ background: 'var(--bg-input)' }}>
-                  <div className="text-[10px] font-semibold">{acc.role}</div>
-                </button>
-              ))}
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
@@ -148,26 +169,97 @@ export function LoginPage() {
 }
 
 export function SignupPage() {
-  const { signup, setAuthView } = useStore();
+  const { setAuthView } = useStore();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] =
+  useState('');
+
+const [showPassword, setShowPassword] =
+  useState(false);
+
+const [showConfirmPassword, setShowConfirmPassword] =
+  useState(false);
   const [role, setRole] = useState<UserRole>('Sales');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email || !password) {
-      setError('Please fill in all fields');
+  const handleSubmit = async (
+  e: React.FormEvent
+) => {
+
+  e.preventDefault();
+
+  if (!name || !email || !password) {
+    setError('Please fill in all fields');
+    return;
+  }
+  
+  if (password !== confirmPassword) {
+
+  setError('Passwords do not match');
+
+  setIsLoading(false);
+
+  return;
+}
+
+
+const strongPassword =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+
+if (!strongPassword.test(password)) {
+
+  setError(
+    'Password must contain uppercase, lowercase, number, symbol and be at least 8 characters'
+  );
+
+  setIsLoading(false);
+
+  return;
+}
+
+
+  setIsLoading(true);
+  setError('');
+
+  try {
+
+    const { error } =
+      await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            role,
+          },
+        },
+      });
+
+    if (error) {
+      setError(error.message);
+      setIsLoading(false);
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      signup(name, email, password, role);
-      setIsLoading(false);
-    }, 800);
-  };
+
+    setIsLoading(false);
+
+    alert(
+      'Account created successfully. Check your email verification.'
+    );
+
+    setAuthView('login');
+
+  } catch (err) {
+
+    setError('Something went wrong');
+
+    setIsLoading(false);
+
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-primary)' }}>
@@ -207,13 +299,105 @@ export function SignupPage() {
           </div>
           <div>
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none transition-all border focus:ring-2 focus:ring-brand-500/30"
-                style={{ background: 'var(--bg-input)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }} />
-            </div>
+            <div className="relative w-full">
+
+  <Lock
+    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+    style={{ color: 'var(--text-muted)' }}
+  />
+
+  <input
+    type={showPassword ? 'text' : 'password'}
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    placeholder="••••••••"
+    required
+    className="w-full pl-10 pr-10 py-2.5 rounded-xl text-sm outline-none transition-all border focus:ring-2 focus:ring-brand-500/30"
+    style={{
+      background: 'var(--bg-input)',
+      borderColor: 'var(--border-primary)',
+      color: 'var(--text-primary)'
+    }}
+  />
+
+  <button
+    type="button"
+    onClick={() =>
+      setShowPassword(!showPassword)
+    }
+    className="absolute right-3 top-1/2 -translate-y-1/2"
+    style={{ color: 'var(--text-muted)' }}
+  >
+    {showPassword ? (
+      <EyeOff className="w-4 h-4" />
+    ) : (
+      <Eye className="w-4 h-4" />
+    )}
+  </button>
+
+</div>
           </div>
+
+          <p
+  className="text-xs mt-2"
+  style={{ color: 'var(--text-secondary)' }}
+>
+  Use 8+ characters with uppercase,
+  lowercase, number and symbol.
+</p>
+
+ <div>
+
+  <label
+    className="block text-sm mb-2"
+    style={{ color: 'var(--text-secondary)' }}
+  >
+    Confirm Password
+  </label>
+
+  <div className="relative w-full">
+
+    <input
+      type={
+        showConfirmPassword
+          ? 'text'
+          : 'password'
+      }
+      value={confirmPassword}
+      onChange={(e) =>
+        setConfirmPassword(e.target.value)
+      }
+      className="w-full px-4 pr-10 py-3 rounded-xl border"
+      style={{
+        background: 'var(--bg-secondary)',
+        borderColor: 'var(--border-primary)',
+        color: 'var(--text-primary)',
+      }}
+      placeholder="Confirm password"
+    />
+
+    <button
+      type="button"
+      onClick={() =>
+        setShowConfirmPassword(
+          !showConfirmPassword
+        )
+      }
+      className="absolute right-3 top-1/2 -translate-y-1/2"
+      style={{ color: 'var(--text-muted)' }}
+    >
+      {showConfirmPassword ? (
+        <EyeOff className="w-4 h-4" />
+      ) : (
+        <Eye className="w-4 h-4" />
+      )}
+    </button>
+
+  </div>
+
+</div>
+
+
           <div>
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Role</label>
             <select value={role} onChange={(e) => setRole(e.target.value as UserRole)}
