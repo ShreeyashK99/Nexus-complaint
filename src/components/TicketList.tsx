@@ -20,7 +20,7 @@ export default function TicketList() {
   const [filterStatus, setFilterStatus] = useState<TicketStatus | 'All'>('All');
   const [showFilters, setShowFilters] = useState(false);
   
- const activeTickets = tickets.filter(
+const activeTickets = tickets.filter(
   (t: any) =>
     t.status !== 'Closed' &&
     t.status !== 'Resolved' &&
@@ -214,6 +214,9 @@ export default function TicketList() {
                       </h4>
                       <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
                         <span>{ticket.customer_name}</span><span>·</span><span>{ticket.company}</span><span>·</span><span>{ticket.city}</span>
+                        <span className="text-[10px] opacity-70">
+  Owner: {ticket.owner || 'Unassigned'}
+</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">

@@ -45,6 +45,50 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   Sales: 'Sales',
 };
 
+export const ROLE_PERMISSIONS = {
+  Founder: {
+    canViewAll: true,
+    canManageTeam: true,
+    canConfigureAI: true,
+    canManageRules: true,
+  },
+
+  Owner: {
+    canViewAll: true,
+    canManageTeam: true,
+    canConfigureAI: true,
+    canManageRules: true,
+  },
+
+  Admin: {
+    canViewAll: true,
+    canManageTeam: true,
+    canConfigureAI: true,
+    canManageRules: true,
+  },
+
+  BusinessHead: {
+    canViewAll: true,
+    canManageTeam: true,
+    canConfigureAI: false,
+    canManageRules: false,
+  },
+
+  AssignedLead: {
+    canViewAll: false,
+    canManageTeam: false,
+    canConfigureAI: false,
+    canManageRules: false,
+  },
+
+  Sales: {
+    canViewAll: false,
+    canManageTeam: false,
+    canConfigureAI: false,
+    canManageRules: false,
+  },
+};
+
 export interface User {
   id: string;
   name: string;
@@ -52,6 +96,7 @@ export interface User {
   role: UserRole;
   avatar: string;
   department: string;
+  phone?: string;
 }
 
 export type TicketStatus = 'Open' | 'Alignment Call Done' | 'In Progress' | 'Awaiting Customer' | 'Resolved' | 'Closed';
@@ -181,13 +226,43 @@ teamMembers: User[];
 
 operationalRules: {
   defaultResponseTime: number;
+  criticalResponseTime: number;
+  highResponseTime: number;
+  autoEscalate: boolean;
+  escalateAfterHours: number;
 };
+
+updateOperationalRules: (
+  rules: Partial<AppState['operationalRules']>
+) => void;
 
 aiSettings: {
   autoSummarize: boolean;
   autoSuggestSeverity: boolean;
   autoSuggestDepartment: boolean;
+  autoRecommendations: boolean;
 };
+
+updateAISettings: (
+  settings: Partial<AppState['aiSettings']>
+) => void;
+
+
+notificationSettings: {
+  emailAlerts: boolean;
+  criticalOnly: boolean;
+  dailyDigest: boolean;
+  weeklyReport: boolean;
+};
+
+updateNotificationSettings: (
+  settings: Partial<AppState['notificationSettings']>
+) => void;
+
+updateProfile: (
+  profile: Partial<User>
+) => void;
+
 
 saveDraft: (draft: any) => void;
 deleteDraft: (id: string) => void;
@@ -306,13 +381,61 @@ teamMembers: [
 
 operationalRules: {
   defaultResponseTime: 48,
+  criticalResponseTime: 4,
+  highResponseTime: 12,
+  autoEscalate: true,
+  escalateAfterHours: 24,
 },
 
 aiSettings: {
   autoSummarize: true,
   autoSuggestSeverity: true,
   autoSuggestDepartment: true,
+  autoRecommendations: true,
 },
+
+notificationSettings: {
+  emailAlerts: true,
+  criticalOnly: false,
+  dailyDigest: true,
+  weeklyReport: true,
+},
+
+updateNotificationSettings: (settings) =>
+  set((s) => ({
+    notificationSettings: {
+      ...s.notificationSettings,
+      ...settings,
+    },
+  })),
+
+updateOperationalRules: (rules) =>
+  set((s) => ({
+    operationalRules: {
+      ...s.operationalRules,
+      ...rules,
+    },
+  })),
+
+updateProfile: (profile) =>
+  set((s) => ({
+    currentUser: s.currentUser
+      ? {
+          ...s.currentUser,
+          ...profile,
+        }
+      : null,
+  })),
+
+
+
+updateAISettings: (settings) =>
+  set((s) => ({
+    aiSettings: {
+      ...s.aiSettings,
+      ...settings,
+    },
+  })),
 
 saveDraft: () => {},
 
